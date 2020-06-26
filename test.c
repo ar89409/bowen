@@ -1,4 +1,4 @@
-#include <stdio.h>
+#include <stdio.h> 
 #include <stdlib.h>
 #include <math.h>
 
@@ -6,20 +6,19 @@
 #define DELTA_X		0.1
 #define IMP 		1e18
 #define INTER 		1e15
+#define TIME		2
 
 //void printMatrix(double* matrix[row], int col, int row);
-void divideFirst(double* array, int arraySize);
-void eliminateUp2Down(double** gaussianMarix, int matSize, int pos);
-void eliminateDown2Up(double** gaussianMarix, int matSize, int pos);
-
-double* gaussianElimination(double* concentrationArray, int matSize);
+void divideFirst(double* concentrationArray, double* array, int arraySize, int pos);
+void eliminateUp2Down(double* concentrationArray, double** gaussianMarix, int matSize, int pos);
+void eliminateDown2Up(double* concentrationArray, double** gaussianMarix, int matSize, int pos);
+double* gaussianElimination(double* concentrationArray, double** gaussianMatrix, int matSize);
 
 int main() {
 	double mat 		= MATERIAL;
 	double dx  		= DELTA_X;
 	double Imp 		= IMP;
 	double Inter	= INTER;
-
 	double dt=1;
 	double k=8.62e-5;
 	double T=1373;
@@ -37,9 +36,9 @@ int main() {
 	double PI=3.14159;
 	double ni=2*(pow(((2*PI*k*T)/(h*h)),1.5))*(pow((mn*mp*m0),0.75))*(exp((-1*Eg)/(2*k*T)));
 	double D=1.45e-3;
-	int time = 2;
+	int time = TIME;
 	int matSize	= mat/dx;
-	
+
 	// Alloc memories to matrix
 	double **matrix = (double **)malloc(time * sizeof(double *));
 	for (int i = 0; i < time; i++)
@@ -53,19 +52,46 @@ int main() {
 			matrix[0][i] = Inter;
 	}
 	
-	for(int i = 1; i < time; i++) {
+	for(int t = 1; t < time; t++) {
 		// Calculate new concentation of material
-		for(int j = 0; j < matSize; j++) {
-			if (j == 0)
-				matrix[i][j] = Imp;
-			else if (j == (matSize-1))
-				matrix[i][j] = Inter;
+		for(int l = 0; l < matSize; l++) {
+			if (l == 0)
+				matrix[t][l] = Imp;
+			else if (l == (matSize-1))
+				matrix[t][l] = Inter;
 			else
-				matrix[i][j] = (matrix[i-1][j-1]*(-1)) + (((2*dx*dx)/(D*dt)+2)*matrix[i-1][j]-matrix[i-1][j+1]);
+				matrix[t][l] = (matrix[t-1][l-1]*(-1)) + (((2*dx*dx)/(D*dt)+2)*matrix[t-1][l]-matrix[t-1][l+1]);
+		}
+		
+		for(int i = 0; i < matSize; i++){
+			printf("%f\n", matrix[t][i]);
+		}
+		printf("=================\n");
+
+		// Build gaussian matrix
+		double **gaussianMatrix = (double **)malloc(matSize * sizeof(double *));
+		for(int i = 0; i < matSize; i++)
+			gaussianMatrix[i] = (double *)calloc(matSize, sizeof(double));
+
+		for(int i = 0; i < matSize; i++) {
+			if(i == 0) {
+				gaussianMatrix[0][0] = 1;
+			} else if (i == (matSize-1)) {
+				gaussianMatrix[matSize-1][matSize-1] = 1;
+			} else {
+				gaussianMatrix[i][i-1] = 1;
+				gaussianMatrix[i][i] = 2-(D*dx*dx)/(2*dt);
+				gaussianMatrix[i][i+1] = 1;
+			}
 		}
 
 		// Gaussian elimination, put first concentration to gaussian elimination.
-		gaussianElimination(matrix[0], matSize);
+		gaussianElimination(matrix[t], gaussianMatrix, matSize);
+
+		// Free gaussian matrix memory
+		for(int i = 0; i < matSize; i++)
+			free(gaussianMatrix[i]);
+		free(gaussianMatrix);
 	}
 
 	// Print all concentrations
@@ -78,7 +104,7 @@ int main() {
 }
 
 
-void divideFirst(double* array, int arraySize) {
+void divideFirst(double* concentrationArray, double* array, int arraySize, int pos) {
 	double first = 0;
 	for (int i = 0; i < arraySize; i++) {
 		if (array[i] != 0) {
@@ -90,26 +116,31 @@ void divideFirst(double* array, int arraySize) {
 	for (int i = 0; i < arraySize; i++) {
 		array[i] /= first;
 	}
+	
+	concentrationArray[pos] /= first;
 }
 
-void eliminateUp2Down(double** gaussianMatrix, int matSize, int pos) {
+void eliminateUp2Down(double* concentrationArray, double** gaussianMatrix, int matSize, int pos) {
 	if(pos > 0) {
-		eliminateUp2Down(gaussianMatrix, matSize, pos-1);
+		eliminateUp2Down(concentrationArray, gaussianMatrix, matSize, pos-1);
 		if (pos == (matSize-1)) {
-			divideFirst(gaussianMatrix[pos-1], matSize);
+			divideFirst(concentrationArray, gaussianMatrix[pos-1], matSize, pos-1);
 		} else {
-			divideFirst(gaussianMatrix[pos-1], matSize);
+			divideFirst(concentrationArray, gaussianMatrix[pos-1], matSize, pos-1);
 			for (int i = 0; i < matSize; i++) {
 				gaussianMatrix[pos][i] -= gaussianMatrix[pos-1][i];
 			}
+			concentrationArray[pos] -= concentrationArray[pos-1];
 		}
 	}
 }
 
-void eliminateDown2Up(double** gaussianMatrix, int matSize, int pos) {
-	if(pos > 0) {
+void eliminateDown2Up(double* concentrationArray, double** gaussianMatrix, int matSize, int pos) {
+	if (pos == (matSize - 1)) {
+		eliminateDown2Up(concentrationArray, gaussianMatrix, matSize, pos-1);
+	} else if(pos > 0) {
         double last = 0;
-        for (int i = matSize; i >= 0; i--) {
+        for (int i = (matSize - 1); i >= 0; i--) {
             if (gaussianMatrix[pos][i] != 0) {
                 last = gaussianMatrix[pos][i];
                 break;
@@ -119,35 +150,21 @@ void eliminateDown2Up(double** gaussianMatrix, int matSize, int pos) {
 		for (int i = 0; i < matSize; i++) {
 			gaussianMatrix[pos][i] -= (gaussianMatrix[pos+1][i] * last);
 		}
-		eliminateDown2Up(gaussianMatrix, matSize, pos-1);
+		concentrationArray[pos] -= (concentrationArray[pos+1] * last);
+		eliminateDown2Up(concentrationArray, gaussianMatrix, matSize, pos-1);
 	}
 }
 
 
-double* gaussianElimination(double* concentrationArray, int matSize) {
-	double **gaussianMatrix = (double **)malloc(matSize * sizeof(double *));
-	for(int i = 0; i < matSize; i++)
-		gaussianMatrix[i] = (double *)calloc(matSize, sizeof(double));
-
-	for(int i = 0; i < matSize; i++) {
-		if(i == 0) {
-			gaussianMatrix[0][0] = 1;
-		} else if (i == (matSize-1)) {
-			gaussianMatrix[matSize-1][matSize-1] = 1;
-		} else {
-			gaussianMatrix[i][i-1] = 1;
-			gaussianMatrix[i][i] = 5;
-			gaussianMatrix[i][i+1] = 1;
-		}
-	}
-    
-    //eliminateUp2Down(gaussianMatrix, matSize, matSize);
-    eliminateDown2Up(gaussianMatrix, matSize, matSize);
+double* gaussianElimination(double* concentrationArray, double** gaussianMatrix, int matSize) {
+	int pos = matSize - 1;
+    eliminateUp2Down(concentrationArray, gaussianMatrix, matSize, pos);
+    eliminateDown2Up(concentrationArray, gaussianMatrix, matSize, pos);
 	for(int i = 0; i < matSize; i++) {
 		for(int j = 0; j < matSize; j++)
 			printf("%f, ", gaussianMatrix[i][j]);
 		printf("\n");
 	}
-
+	
 	return concentrationArray;
 }
