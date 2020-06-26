@@ -8,10 +8,9 @@
 #define INTER 		1e15
 
 //void printMatrix(double* matrix[row], int col, int row);
-void divideFirst(double** gaussianMatrix );
-double getLastNonZero(double* array);
-void eliminateUp2Down(double** gaussianMarix, int matSize);
-void eliminateDown2Up(double** gaussianMarix, int matSize);
+void divideFirst(double* array, int arraySize);
+void eliminateUp2Down(double** gaussianMarix, int matSize, int pos);
+void eliminateDown2Up(double** gaussianMarix, int matSize, int pos);
 
 double* gaussianElimination(double* concentrationArray, int matSize);
 
@@ -65,7 +64,7 @@ int main() {
 				matrix[i][j] = (matrix[i-1][j-1]*(-1)) + (((2*dx*dx)/(D*dt)+2)*matrix[i-1][j]-matrix[i-1][j+1]);
 		}
 
-		// Gaussian elimination
+		// Gaussian elimination, put first concentration to gaussian elimination.
 		gaussianElimination(matrix[0], matSize);
 	}
 
@@ -93,28 +92,15 @@ void divideFirst(double* array, int arraySize) {
 	}
 }
 
-void multiLast(double* array, double* multiArray int arraySize) {
-	double last = 0;
-	for (int i = (arraySize-1); i >= 0; i--) {
-		if (array[i] != 0) {
-			last = array[i];
-		}
-	}
-
-	for (int i = 0; i < arraySize; i++) {
-		multiArray[i] *= last;
-	}
-}
-
-void eliminateUp2Down(double** guassianMarix, int matSize, int pos) {
+void eliminateUp2Down(double** gaussianMatrix, int matSize, int pos) {
 	if(pos > 0) {
-		eliminateUp2Down(matrix, pos-1);
+		eliminateUp2Down(gaussianMatrix, matSize, pos-1);
 		if (pos == (matSize-1)) {
-			divideFirst(matrix[pos-1]);
+			divideFirst(gaussianMatrix[pos-1], matSize);
 		} else {
-			divideFirst(matrix[pos-1]);
+			divideFirst(gaussianMatrix[pos-1], matSize);
 			for (int i = 0; i < matSize; i++) {
-				matrix[pos][i] -= matrix[pos-1][i];
+				gaussianMatrix[pos][i] -= gaussianMatrix[pos-1][i];
 			}
 		}
 	}
@@ -122,11 +108,18 @@ void eliminateUp2Down(double** guassianMarix, int matSize, int pos) {
 
 void eliminateDown2Up(double** gaussianMatrix, int matSize, int pos) {
 	if(pos > 0) {
-		gaussianMatrix[pos] = multiLast(gaussianMatrix[pos], gaussianMatrix[pos+1]);
+        double last = 0;
+        for (int i = matSize; i >= 0; i--) {
+            if (gaussianMatrix[pos][i] != 0) {
+                last = gaussianMatrix[pos][i];
+                break;
+            }
+        }
+
 		for (int i = 0; i < matSize; i++) {
-			matrix[pos][i] -= matrix[pos+1][i];
+			gaussianMatrix[pos][i] -= (gaussianMatrix[pos+1][i] * last);
 		}
-		eliminateDown2Up(matrix, col-1);
+		eliminateDown2Up(gaussianMatrix, matSize, pos-1);
 	}
 }
 
@@ -147,7 +140,9 @@ double* gaussianElimination(double* concentrationArray, int matSize) {
 			gaussianMatrix[i][i+1] = 1;
 		}
 	}
-
+    
+    //eliminateUp2Down(gaussianMatrix, matSize, matSize);
+    eliminateDown2Up(gaussianMatrix, matSize, matSize);
 	for(int i = 0; i < matSize; i++) {
 		for(int j = 0; j < matSize; j++)
 			printf("%f, ", gaussianMatrix[i][j]);
