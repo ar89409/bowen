@@ -6,7 +6,7 @@
 #define DELTA_X		0.1
 #define IMP 		1e18
 #define INTER 		1e15
-#define TIME		2
+#define TIME		100
 
 void printMatrix(double* concentrationArray, double** gaussianMatrix, int matSize);
 void divideFirst(double* concentrationArray, double* array, int arraySize, int pos);
@@ -80,9 +80,9 @@ int main() {
 			} else if (i == (matSize-1)) {
 				gaussianMatrix[matSize-1][matSize-1] = 1;
 			} else {
-				gaussianMatrix[i][i-1] = 1;
-				gaussianMatrix[i][i] = 2-(D*dx*dx)/(2*dt);
-				gaussianMatrix[i][i+1] = 1;
+				gaussianMatrix[i][i-1] = (-1)*((D*dt)/(2*dx*dx));
+				gaussianMatrix[i][i] = (1+(D*dt)/(dx*dx));
+				gaussianMatrix[i][i+1] = (-1)*((D*dt)/(2*dx*dx));
 			}
 		}
 
@@ -151,6 +151,7 @@ void eliminateUp2Down(double* concentrationArray, double** gaussianMatrix, int m
 		
 		// All elements divide first non zero element
 		divideFirst(concentrationArray, gaussianMatrix[pos-1], matSize, pos-1);
+		divideFirst(concentrationArray, gaussianMatrix[pos], matSize, pos);
 		
 		// Eliminate first element
 		for (int i = 0; i < matSize; i++) {
