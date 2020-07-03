@@ -54,10 +54,11 @@ int main() {
 	
 	for(int t = 1; t < time; t++) {
 		// Print origin concentration of material
+		
+		printf("========= origin concentration of material =========\n");
 		for(int i = 0; i < matSize; i++){
 			printf("%f\n", matrix[t-1][i]);
 		}
-		printf("=================\n");
 
 		// Calculate new concentration of material
 		for(int l = 0; l < matSize; l++) {
@@ -69,11 +70,11 @@ int main() {
 				matrix[t][l] = (matrix[t-1][l-1]*(-1)) + (((2*dx*dx)/(D*dt)+2)*matrix[t-1][l]-matrix[t-1][l+1]);
 		}
 		
+		printf("========= calculated contentraion of material =========\n");
 		// Print calculated contentraion of material
 		for(int i = 0; i < matSize; i++){
 			printf("%f\n", matrix[t][i]);
 		}
-		printf("=================\n");
 
 
 		// Build gaussian matrix
@@ -116,13 +117,13 @@ int main() {
 }
 
 void printMatrix(double* concentrationArray, double** gaussianMatrix, int matSize) {
+	printf("=========================================================\n");
 	for (int i = 0; i < matSize; i++) {
 		for (int j = 0; j < matSize; j++) {
 			printf("%.2f, ", gaussianMatrix[i][j]);
 		}
 		printf("%.2f\n", concentrationArray[i]);
 	}
-	printf("====================\n");
 }
 
 void divideFirst(double* concentrationArray, double* array, int arraySize, int pos) {
