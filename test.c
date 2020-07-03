@@ -6,7 +6,7 @@
 #define DELTA_X		0.1
 #define IMP 		1e18
 #define INTER 		1e15
-#define TIME		100
+#define TIME		5
 
 void printMatrix(double* concentrationArray, double** gaussianMatrix, int matSize);
 void divideFirst(double* concentrationArray, double* array, int arraySize, int pos);
@@ -41,7 +41,7 @@ int main() {
 
 	// Alloc memories to matrix
 	double **matrix = (double **)malloc(time * sizeof(double *));
-	for (int i = 0; i < time; i++)
+	for(int i = 0; i < time; i++)
 		matrix[i] = (double *)malloc(matSize * sizeof(double));
 
 	// Init first concentration
@@ -53,6 +53,12 @@ int main() {
 	}
 	
 	for(int t = 1; t < time; t++) {
+		// Print origin concentration of material
+		for(int i = 0; i < matSize; i++){
+			printf("%f\n", matrix[t-1][i]);
+		}
+		printf("=================\n");
+
 		// Calculate new concentration of material
 		for(int l = 0; l < matSize; l++) {
 			if (l == 0)
@@ -63,11 +69,12 @@ int main() {
 				matrix[t][l] = (matrix[t-1][l-1]*(-1)) + (((2*dx*dx)/(D*dt)+2)*matrix[t-1][l]-matrix[t-1][l+1]);
 		}
 		
-		// Print origin concentration of material
+		// Print calculated contentraion of material
 		for(int i = 0; i < matSize; i++){
 			printf("%f\n", matrix[t][i]);
 		}
 		printf("=================\n");
+
 
 		// Build gaussian matrix
 		double **gaussianMatrix = (double **)malloc(matSize * sizeof(double *));
@@ -76,8 +83,10 @@ int main() {
 
 		for(int i = 0; i < matSize; i++) {
 			if(i == 0) {
+				// First item of the first colume is 1, else 0
 				gaussianMatrix[0][0] = 1;
 			} else if (i == (matSize-1)) {
+				// Last item of the last colume is 1, else 0
 				gaussianMatrix[matSize-1][matSize-1] = 1;
 			} else {
 				gaussianMatrix[i][i-1] = (-1)*((D*dt)/(2*dx*dx));
@@ -106,6 +115,15 @@ int main() {
 	return 0;
 }
 
+void printMatrix(double* concentrationArray, double** gaussianMatrix, int matSize) {
+	for (int i = 0; i < matSize; i++) {
+		for (int j = 0; j < matSize; j++) {
+			printf("%.2f, ", gaussianMatrix[i][j]);
+		}
+		printf("%.2f\n", concentrationArray[i]);
+	}
+	printf("====================\n");
+}
 
 void divideFirst(double* concentrationArray, double* array, int arraySize, int pos) {
 	double first = 0;
@@ -121,16 +139,6 @@ void divideFirst(double* concentrationArray, double* array, int arraySize, int p
 	}
 	
 	concentrationArray[pos] /= first;
-}
-
-void printMatrix(double* concentrationArray, double** gaussianMatrix, int matSize) {
-	for (int i = 0; i < matSize; i++) {
-		for (int j = 0; j < matSize; j++) {
-			printf("%.2f, ", gaussianMatrix[i][j]);
-		}
-		printf("%.2f\n", concentrationArray[i]);
-	}
-	printf("====================\n");
 }
 
 void eliminateUp2Down(double* concentrationArray, double** gaussianMatrix, int matSize, int pos) {
@@ -149,8 +157,10 @@ void eliminateUp2Down(double* concentrationArray, double** gaussianMatrix, int m
 		
 		printMatrix(concentrationArray, gaussianMatrix, matSize);
 		
-		// All elements divide first non zero element
+		// Make the first item of upper concentration is 1
 		divideFirst(concentrationArray, gaussianMatrix[pos-1], matSize, pos-1);
+
+		// Make the first item of current concentration is 1
 		divideFirst(concentrationArray, gaussianMatrix[pos], matSize, pos);
 		
 		// Eliminate first element
