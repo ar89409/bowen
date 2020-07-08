@@ -6,7 +6,7 @@
 #define DELTA_X		0.1
 #define IMP 		1e18
 #define INTER 		1e15
-#define TIME		5
+#define TIME		100
 
 void printMatrix(double* concentrationArray, double** gaussianMatrix, int matSize);
 void divideFirst(double* concentrationArray, double* array, int arraySize, int pos);
